@@ -1,4 +1,4 @@
-using Xunit;
+﻿using Xunit;
 
 namespace System.Text.Json
 {
@@ -13,18 +13,18 @@ namespace System.Text.Json
         public static void CanSerializeObjectToJson()
         {
             // Arrange
-            var booking = new 
+            var booking = new
             {
                 BookingDate = new DateTimeOffset(2019, 06, 23, 22, 00, 00, TimeSpan.FromHours(1)),
                 Id = "af43ea6f-b3ff-4640-9a9a-dbfc7544a4a4",
                 Title = "Sample Booking",
                 Premium = false,
-                Price = new 
+                Price = new
                 {
                     Value = 9.99M,
                     Currency = "GBP"
                 },
-                Member = new 
+                Member = new
                 {
                     EmailAddress = "sample.member@somedomain.com",
                     FirstName = "William",
@@ -40,7 +40,7 @@ namespace System.Text.Json
             Assert.Contains("booking_date", json);
         }
 
-        [Theory]            
+        [Theory]
         [InlineData("URL", "url")]
         [InlineData("URLValue", "url_value")]
         [InlineData("ID", "id")]

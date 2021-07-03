@@ -1,7 +1,19 @@
-using System.Buffers;
+﻿using System.Buffers;
 
 namespace System.Text.Json
 {
+    /// <summary>
+    /// Implements the Snake Case naming policy used to convert a string-based name to compound words or phrases that are
+    /// separated by an underscore instead of by spaces.
+    /// <para>Basic Snake Case Capitalization Rules:</para>
+    /// <list type="bullet">
+    /// <item><description>Ignores leading/trailing whitespace.</description></item>
+    /// <item><description>Collapse multiple underscores into one.</description></item>
+    /// <item><description>Numbers are only treated as separate words if followed by capital letter.</description></item>
+    /// <item><description>Sequence of consecutive capital letter is considered one "word".</description></item>
+    /// <item><description>Ignore punctuation.</description></item>
+    /// </list>
+    /// </summary>
     public sealed class JsonSnakeCaseNamingPolicy : JsonNamingPolicy
     {
         private const char Separator = '_';
@@ -14,9 +26,11 @@ namespace System.Text.Json
             if (name.Length == 1)
                 return name.ToLowerInvariant();
 
-            // The worst-case is we need to insert a separator between every char in the appx (s.Length * 2).
-            var result = new StringBuilder(2 * (name.Length - 1));
-            var wroteUnderscorePreviously = false;
+            // The worst-case is we need to insert a separator between every char in
+            // the appx (s.Length * 2).
+            char[] arr = ArrayPool<char>.Shared.Rent(2 * (name.Length - 1));
+            bool wroteUnderscorePreviously = false;
+            int position = 0;
 
             for (int i = 0; i < name.Length; i++)
             {
@@ -24,49 +38,43 @@ namespace System.Text.Json
 
                 if (i > 0 && i < name.Length - 1 && char.IsLetter(current))
                 {
-                    // Text somewhere in the middle of the string.
+                    // Char somewhere in the middle of the string.
                     var previous = name[i - 1];
                     var next = name[i + 1];
 
                     if (char.IsLetter(previous) && char.IsLetter(next))
                     {
-                        // In the middle of a bit of text
-                        var previousUpper = char.IsUpper(previous);
-                        var currentUpper = char.IsUpper(current);
-                        var nextUpper = char.IsUpper(next);
-
-                        switch ((previousUpper, currentUpper, nextUpper))
+                        switch ((char.IsUpper(previous), char.IsUpper(current), char.IsUpper(next)))
                         {
                             case (false, false, false): // aaa
-                            case (true,  true,  true): // AAA
-                            case (true, false, false): // Aaa
+                            case (true, true, true):  // AAA
+                            case (true, false, false):  // Aaa
                             {
                                 // same word
-                                result.Append(char.ToLowerInvariant(current));
+                                arr[position++] = char.ToLowerInvariant(current);
                                 wroteUnderscorePreviously = false;
                                 break;
                             }
 
-                            case (false, false,  true): // aaA
-                            case ( true, false,  true): // AaA
+                            case (false, false, true): // aaA
+                            case (true, false, true): // AaA
                             {
                                 // end of word
-                                result.Append(char.ToLowerInvariant(current));
-                                result.Append(Separator);
+                                arr[position++] = char.ToLowerInvariant(current);
+                                arr[position++] = Separator;
                                 wroteUnderscorePreviously = true;
                                 break;
                             }
 
-                            case (false,  true,  true): // aAA
-                            case ( true,  true, false): // AAa
-                            case (false,  true, false): // aAa
+                            case (false, true, true): // aAA
+                            case (true, true, false): // AAa
+                            case (false, true, false): // aAa
                             {
                                 // beginning of word
                                 if (!wroteUnderscorePreviously)
-                                {
-                                    result.Append(Separator);
-                                }
-                                result.Append(char.ToLowerInvariant(current));
+                                    arr[position++] = Separator;
+
+                                arr[position++] = char.ToLowerInvariant(current);
                                 wroteUnderscorePreviously = false;
                                 break;
                             }
@@ -75,40 +83,43 @@ namespace System.Text.Json
                     else
                     {
                         // Beginning or end of text
-                        result.Append(char.ToLowerInvariant(current));
+                        arr[position++] = char.ToLowerInvariant(current);
                         wroteUnderscorePreviously = false;
                     }
                 }
                 else if (char.IsLetter(current))
                 {
-                    // Text at the beginning or the end of the string
-                    result.Append(char.ToLowerInvariant(current));
+                    // Char at the beginning or the end of the string
+                    arr[position++] = char.ToLowerInvariant(current);
                     wroteUnderscorePreviously = false;
                 }
                 else if (char.IsNumber(current))
                 {
                     // A number at any point in the string
                     if (i > 0 && !wroteUnderscorePreviously)
-                        result.Append(Separator);
+                        arr[position++] = Separator;
 
-                    result.Append(current);
+                    arr[position++] = current;
                     wroteUnderscorePreviously = false;
-                    
+
                     if (i < name.Length - 1)
                     {
-                        result.Append(Separator);
+                        arr[position++] = Separator;
                         wroteUnderscorePreviously = true;
                     }
                 }
                 else if (!wroteUnderscorePreviously)
                 {
-                    // Any punctuation at any point in the string
-                    result.Append(Separator);
+                    // Collapse multiple underscores/punctuation/whitespces into one at
+                    // any point in the string.
+                    arr[position++] = Separator;
                     wroteUnderscorePreviously = true;
                 }
             }
 
-            return result.ToString();
+            ArrayPool<char>.Shared.Return(arr);
+
+            return new string(arr, 0, position);
         }
     }
 }
