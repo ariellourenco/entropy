@@ -1,17 +1,19 @@
 # Version: 1.0.0 (Using https://semver.org/)
-# Updated: 24-06-2021
+# Updated: 11-08-2021
 # See http://EditorConfig.org for more information about .editorconfig files.
 # See https://docs.microsoft.com/en-us/dotnet/fundamentals/code-analysis/code-style-rule-options for code style rule options.
 
 root = true
 
 # Default settings
-[*.cs]
+[*]
 charset = utf-8-bom
-insert_final_newline = true
 indent_style = space
-indent_size = 4
+insert_final_newline = true
 trim_trailing_whitespace = true
+
+[*.cs]
+indent_size = 4
 
 # New line preferences
 csharp_new_line_before_open_brace = all
@@ -119,6 +121,21 @@ dotnet_naming_rule.type_parameter_rule.symbols              = type_parameter_gro
 dotnet_naming_rule.type_parameter_rule.style                = prefix_type_parameters_with_t_style
 dotnet_naming_rule.type_parameter_rule.severity             = warning
 
+# Async Methods use PascalCase and are postfix with 'Async'
+# https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/concepts/async/task-asynchronous-programming-model
+# Note: The naming conventions feature for .editorconfig is not able to apply the full rules for the async method suffix
+# See more: https://github.com/dotnet/roslyn/issues/40050
+dotnet_naming_rule.async_methods_end_in_async.symbols = any_async_methods
+dotnet_naming_rule.async_methods_end_in_async.style = end_in_async
+dotnet_naming_rule.async_methods_end_in_async.severity = warning
+
+dotnet_naming_symbols.any_async_methods.applicable_kinds = method
+dotnet_naming_symbols.any_async_methods.applicable_accessibilities = *
+dotnet_naming_symbols.any_async_methods.required_modifiers = async
+
+dotnet_naming_style.end_in_async.required_suffix = Async
+dotnet_naming_style.end_in_async.capitalization = pascal_case
+
 # Modifier preferences
 dotnet_style_require_accessibility_modifiers = always:warning
 csharp_preferred_modifier_order = public,private,protected,internal,static,extern,new,virtual,abstract,sealed,override,readonly,unsafe,volatile,async:warning
@@ -162,19 +179,33 @@ csharp_style_prefer_index_operator = false:none
 csharp_style_prefer_range_operator = false:none
 csharp_style_pattern_local_over_anonymous_function = false:none
 
-[*.{yml,yaml}]
-indent_style = space
+# CA2016: Forward the 'CancellationToken' parameter to methods that take one
+dotnet_diagnostic.CA2016.severity = suggestion
+
+# Json
+[*.json]
 indent_size = 2
 
-# Shell scripts
-[*.sh]
-end_of_line = lf
-indent_size = 2
+# Markdown
+[*.md]
+max_line_length = off
+trim_trailing_whitespace = false
 
+# Scripts
 [*.{cmd, bat}]
 end_of_line = crlf
 indent_size = 2
 
-# Powershell files
 [*.ps1]
+indent_size = 2
+
+[*.sh]
+end_of_line = lf
+indent_size = 2
+
+
+
+# Yaml
+[*.{yml,yaml}]
+indent_style = space
 indent_size = 2
