@@ -27,8 +27,8 @@ namespace System.Text.Json
                 return name.ToLowerInvariant();
 
             // The worst-case is we need to insert a separator between every char in
-            // the appx (s.Length * 2).
-            char[] arr = ArrayPool<char>.Shared.Rent(2 * (name.Length - 1));
+            // the appx which makes the string double its length (s.Length * 2).
+            char[] buffer = ArrayPool<char>.Shared.Rent(2 * (name.Length - 1));
             bool wroteUnderscorePreviously = false;
             int position = 0;
 
@@ -51,7 +51,7 @@ namespace System.Text.Json
                             case (true, false, false):  // Aaa
                             {
                                 // same word
-                                arr[position++] = char.ToLowerInvariant(current);
+                                buffer[position++] = char.ToLowerInvariant(current);
                                 wroteUnderscorePreviously = false;
                                 break;
                             }
@@ -60,8 +60,8 @@ namespace System.Text.Json
                             case (true, false, true): // AaA
                             {
                                 // end of word
-                                arr[position++] = char.ToLowerInvariant(current);
-                                arr[position++] = Separator;
+                                buffer[position++] = char.ToLowerInvariant(current);
+                                buffer[position++] = Separator;
                                 wroteUnderscorePreviously = true;
                                 break;
                             }
@@ -72,9 +72,9 @@ namespace System.Text.Json
                             {
                                 // beginning of word
                                 if (!wroteUnderscorePreviously)
-                                    arr[position++] = Separator;
+                                    buffer[position++] = Separator;
 
-                                arr[position++] = char.ToLowerInvariant(current);
+                                buffer[position++] = char.ToLowerInvariant(current);
                                 wroteUnderscorePreviously = false;
                                 break;
                             }
@@ -83,43 +83,43 @@ namespace System.Text.Json
                     else
                     {
                         // Beginning or end of text
-                        arr[position++] = char.ToLowerInvariant(current);
+                        buffer[position++] = char.ToLowerInvariant(current);
                         wroteUnderscorePreviously = false;
                     }
                 }
                 else if (char.IsLetter(current))
                 {
                     // Char at the beginning or the end of the string
-                    arr[position++] = char.ToLowerInvariant(current);
+                    buffer[position++] = char.ToLowerInvariant(current);
                     wroteUnderscorePreviously = false;
                 }
                 else if (char.IsNumber(current))
                 {
                     // A number at any point in the string
                     if (i > 0 && !wroteUnderscorePreviously)
-                        arr[position++] = Separator;
+                        buffer[position++] = Separator;
 
-                    arr[position++] = current;
+                    buffer[position++] = current;
                     wroteUnderscorePreviously = false;
 
                     if (i < name.Length - 1)
                     {
-                        arr[position++] = Separator;
+                        buffer[position++] = Separator;
                         wroteUnderscorePreviously = true;
                     }
                 }
                 else if (!wroteUnderscorePreviously)
                 {
-                    // Collapse multiple underscores/punctuation/whitespces into one at
-                    // any point in the string.
-                    arr[position++] = Separator;
+                    // Collapse multiple underscores/punctuation/whitespces into one at any point in the string.
+                    // We ignores any non-letter or non-digit characters and treat them as word boundaries.
+                    buffer[position++] = Separator;
                     wroteUnderscorePreviously = true;
                 }
             }
 
-            ArrayPool<char>.Shared.Return(arr);
+            ArrayPool<char>.Shared.Return(buffer);
 
-            return new string(arr, 0, position);
+            return new string(buffer, 0, position);
         }
     }
 }

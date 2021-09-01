@@ -38,6 +38,10 @@ namespace System.Text.Json
 
             // Assert
             Assert.Contains("booking_date", json);
+            Assert.Contains("first_name", json);
+            Assert.Contains("last_name", json);
+            Assert.Contains("email_address", json);
+            Assert.Contains("price", json);
         }
 
         [Theory]
